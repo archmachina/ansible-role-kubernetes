@@ -1,0 +1,39 @@
+---
+
+- name: kubeadm init
+  shell:
+    cmd: "kubeadm init --control-plane-endpoint '{{ kubernetes_control_plane_host }}:{{ kubernetes_control_plane_port }}' --apiserver-bind-port '{{ kubernetes_apiserver_bind_port }}' --pod-network-cidr={{ kubernetes_pod_network }} --service-cidr={{ kubernetes_service_network }} 2>&1 | tee -a /root/kubeadm-init.log"
+    creates: /etc/kubernetes/kubelet.conf
+  environment:
+    http_proxy: ""
+    https_proxy: ""
+
+- name: Copy admin.conf
+  copy:
+    src: /etc/kubernetes/admin.conf
+    dest: ~/.kube/config
+    remote_src: true
+    owner: root
+    group: root
+    mode: 0600
+
+- name: Generate certificate key
+  command: "openssl rand -hex 32"
+  register: kubernetes_certificate_key_run
+
+- name: Upload certs
+  command: "kubeadm init phase upload-certs --certificate-key {{ kubernetes_certificate_key_run.stdout }} --upload-certs"
+  retries: 3
+  delay: 10
+  environment:
+    http_proxy: ""
+    https_proxy: ""
+
+- name: Generate join token for managers
+  command: "kubeadm token create --certificate-key {{ kubernetes_certificate_key_run.stdout }} --print-join-command"
+  register: kubernetes_manager_join_run
+  environment:
+    http_proxy: ""
+    https_proxy: ""
+
+...

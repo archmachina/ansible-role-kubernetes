@@ -1,0 +1,35 @@
+---
+
+- name: Generate join token for workers
+  command: "kubeadm token create --print-join-command"
+  register: kubernetes_worker_join_run
+  when: inventory_hostname == kubernetes_primary_node
+  environment:
+    http_proxy: ""
+    https_proxy: ""
+
+- name: Distribute worker join command
+  when:
+    - kubernetes_worker_join_run is defined and kubernetes_worker_join_run.stdout|default('') != ''
+  set_fact:
+    kubernetes_worker_join_command: "{{ kubernetes_worker_join_run.stdout }}"
+  delegate_to: "{{ item }}"
+  delegate_facts: true
+  loop: "{{ play_hosts }}"
+
+- name: Worker join
+  when:
+    - kubernetes_worker_join_command|default('') != ''
+    - kubernetes_manager | default(false) == false
+  command:
+    cmd: "{{ kubernetes_worker_join_command }}"
+    creates: /etc/kubernetes/kubelet.conf
+  register: worker_join_run
+  until: worker_join_run.rc|default(1) == 0
+  retries: 3
+  delay: 10
+  environment:
+    http_proxy: ""
+    https_proxy: ""
+
+...

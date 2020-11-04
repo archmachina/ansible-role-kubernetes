@@ -1,0 +1,46 @@
+---
+
+- name: Primary node configuration
+  include_tasks: manager_primary.yml
+  when: inventory_hostname == kubernetes_primary_node
+
+- name: Distribute manager join command
+  when:
+    - kubernetes_manager_join_run is defined and kubernetes_manager_join_run.stdout|default('') != ''
+  set_fact:
+    kubernetes_manager_join_command: "{{ kubernetes_manager_join_run.stdout }}"
+  delegate_to: "{{ item }}"
+  delegate_facts: true
+  loop: "{{ play_hosts }}"
+
+- name: Other manager joining
+  include_tasks: manager_join.yml
+  when: inventory_hostname != kubernetes_primary_node
+
+- name: Download Calico manifest
+  command:
+    cmd: "curl https://docs.projectcalico.org/manifests/calico.yaml -o /etc/kubernetes/calico.yaml"
+    creates: /etc/kubernetes/calico.yaml
+  when: inventory_hostname == kubernetes_primary_node
+
+- name: Apply Calico manifest
+  command: "kubectl apply -f /etc/kubernetes/calico.yaml"
+  when: inventory_hostname == kubernetes_primary_node
+  environment:
+    http_proxy: ""
+    https_proxy: ""
+
+- name: Download dashboard manifest
+  command:
+    cmd: "curl https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.4/aio/deploy/recommended.yaml -o /etc/kubernetes/dashboard.yaml"
+    creates: /etc/kubernetes/dashboard.yaml
+  when: inventory_hostname == kubernetes_primary_node
+
+- name: Apply dashboard manifest
+  command: "kubectl apply -f /etc/kubernetes/dashboard.yaml"
+  when: inventory_hostname == kubernetes_primary_node
+  environment:
+    http_proxy: ""
+    https_proxy: ""
+
+...

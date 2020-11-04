@@ -1,0 +1,113 @@
+---
+
+#- name: Set default variables
+#  set_fact:
+
+- name: Firewall Configuration for Kubernetes
+  iptables:
+    chain: INPUT
+    jump: ACCEPT
+    protocol: ip
+    source: "{{ item }}"
+  with_items: "{{ kubernetes_mgmt_nets }}"
+  when: kubernetes_mgmt_nets is defined
+
+- name: Save iptables rules
+  include_tasks: "{{ playbook_dir }}/lib/firewall-save.yml"
+
+- name: Add Kubernetes signing key
+  apt_key:
+    url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+    state: present
+
+- name: Remove invalid Kubernetes repo
+  apt_repository:
+    repo: "deb http://apt.kubernetes.io/ kubernetes-bionic main"
+    state: absent
+
+- name: Add Kubernetes repository
+  apt_repository:
+    repo: "deb https://apt.kubernetes.io/ kubernetes-xenial main"
+    state: present
+
+- name: Update apt cache
+  apt:
+    update_cache: true
+  changed_when: false
+  ignore_errors: true
+
+- name: Install worker packages
+  apt:
+    name:
+      - kubelet
+      - kubeadm
+      - containerd.io
+      - haproxy
+      - python-docker
+      - python3-docker
+    state: present
+
+- name: Install manager packages
+  apt:
+    name:
+      - kubectl
+    state: present
+  when: "kubernetes_manager | default(false)"
+
+- name: Disable active swap
+  command: "swapoff -a"
+  when: ansible_swaptotal_mb > 0
+
+- name: Disable swap (fstab)
+  args:
+    warn: false
+  shell: >
+    sed -i '/^[[:space:]]*[^#].*[[:space:]]\+swap[[:space:]]\+/s/^\(.*\)/#\1/' /etc/fstab
+
+- name: kube directory
+  file:
+    state: directory
+    path: ~/.kube
+    owner: root
+    group: root
+    mode: 0700
+
+- name: Copy haproxy configuration
+  template:
+    dest: /etc/apiserver-haproxy.cfg
+    src: haproxy.cfg.j2
+    owner: root
+    group: root
+    mode: 0644
+  register: haproxy_config
+
+- name: apiserver container
+  docker_container:
+    name: apiserver-haproxy
+    image: haproxy:2.2.4
+    volumes:
+      - "/etc/apiserver-haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg"
+    ports:
+      - "{{ kubernetes_control_plane_port }}:{{ kubernetes_control_plane_port }}"
+    state: "started"
+    restart_policy: "always"
+    network_mode: "host"
+    recreate: "{{ true if haproxy_config.changed else false }}"
+    restart: "{{ true if haproxy_config.changed else false }}"
+
+- name: Add hosts files entries
+  lineinfile:
+    path: /etc/hosts
+    regexp: "^127.0.0.1 {{ kubernetes_control_plane_host }}$"
+    line: "127.0.0.1 {{ kubernetes_control_plane_host }}"
+    state: present
+  when: kubernetes_add_hosts_entries
+
+- name: Manager setup
+  include_tasks: manager_setup.yml
+  when: "kubernetes_manager | default(false)"
+
+- name: Worker setup
+  include_tasks: worker_setup.yml
+
+...

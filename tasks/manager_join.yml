@@ -1,0 +1,30 @@
+---
+
+- name: Check for admin.conf
+  stat:
+    path: /etc/kubernetes/admin.conf
+  register: admin_conf
+
+- name: Manager join
+  when: kubernetes_manager_join_command|default('') != '' and admin_conf.stat.exists|default(false) == false
+  command:
+    cmd: "{{ kubernetes_manager_join_command }} --apiserver-bind-port '{{ kubernetes_apiserver_bind_port }}'"
+    creates: /etc/kubernetes/kubelet.conf
+  register: manager_join_run
+  until: manager_join_run.rc|default(1) == 0
+  retries: 3
+  delay: 10
+  environment:
+    http_proxy: ""
+    https_proxy: ""
+
+- name: Copy admin.conf
+  copy:
+    src: /etc/kubernetes/admin.conf
+    dest: ~/.kube/config
+    remote_src: true
+    owner: root
+    group: root
+    mode: 0600
+
+...

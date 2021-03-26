@@ -20,11 +20,6 @@
     url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
     state: present
 
-- name: Remove invalid Kubernetes repo
-  apt_repository:
-    repo: "deb http://apt.kubernetes.io/ kubernetes-bionic main"
-    state: absent
-
 - name: Add Kubernetes repository
   apt_repository:
     repo: "deb https://apt.kubernetes.io/ kubernetes-xenial main"
@@ -47,11 +42,18 @@
       - python3-docker
     state: present
 
+- name: Hold Kubernetes worker packages
+  command: "apt-mark hold kubelet kubeadm"
+
 - name: Install manager packages
   apt:
     name:
       - kubectl
     state: present
+  when: "kubernetes_manager | default(false)"
+
+- name: Hold Kubernetes manager packages
+  command: "apt-mark hold kubectl"
   when: "kubernetes_manager | default(false)"
 
 - name: Disable active swap

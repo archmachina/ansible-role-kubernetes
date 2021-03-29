@@ -1,0 +1,3 @@
+Calico: https://docs.projectcalico.org/manifests/calico.yaml
+Dashboard: https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deploy/recommended.yaml
+Ingress Nginx: https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v0.44.0/deploy/static/provider/baremetal/deploy.yaml

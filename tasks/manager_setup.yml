@@ -19,7 +19,7 @@
 
 - name: Copy Calico manifest
   copy:
-    src: "calico.yml"
+    src: "calico.yaml"
     dest: "/etc/kubernetes/calico.yaml"
   when: inventory_hostname == kubernetes_primary_node
 

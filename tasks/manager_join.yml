@@ -14,6 +14,7 @@
   until: manager_join_run.rc|default(1) == 0
   retries: 3
   delay: 10
+  throttle: 1
   environment:
     http_proxy: ""
     https_proxy: ""

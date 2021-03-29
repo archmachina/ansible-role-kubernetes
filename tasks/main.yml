@@ -19,6 +19,8 @@
   apt_key:
     url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
     state: present
+  retries: 3
+  delay: 10
 
 - name: Add Kubernetes repository
   apt_repository:
@@ -97,6 +99,8 @@
     network_mode: "host"
     recreate: "{{ true if haproxy_config.changed else false }}"
     restart: "{{ true if haproxy_config.changed else false }}"
+  retries: 3
+  delay: 10
 
 - name: Add hosts files entries
   lineinfile:

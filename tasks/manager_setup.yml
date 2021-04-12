@@ -56,4 +56,30 @@
     http_proxy: ""
     https_proxy: ""
 
+- name: Copy longhorn manifest
+  copy:
+    src: "longhorn.yaml"
+    dest: "/etc/kubernetes/longhorn.yaml"
+  when: inventory_hostname == kubernetes_primary_node
+
+- name: Apply longhorn manifest
+  command: "kubectl apply -f /etc/kubernetes/longhorn.yaml"
+  when:
+    - "inventory_hostname == kubernetes_primary_node"
+    - "kubernetes_longhorn_install | default(false)"
+  environment:
+    http_proxy: ""
+    https_proxy: ""
+
+# Remove master taints
+- name: Remove master taints
+  command: "kubectl taint nodes --all=true node-role.kubernetes.io/master-"
+  when:
+    - "inventory_hostname == kubernetes_primary_node"
+    - "kubernetes_remove_master_taint|default(false)"
+  failed_when: false
+  environment:
+    http_proxy: ""
+    https_proxy: ""
+
 ...

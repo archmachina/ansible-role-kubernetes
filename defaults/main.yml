@@ -4,4 +4,7 @@ kubernetes_add_hosts_entries: true
 #kubernetes_control_plane_host:
 kubernetes_control_plane_port: 6443
 kubernetes_apiserver_bind_port: 6445
+kubernetes_longhorn_install: false
+kubernetes_remove_master_taint: false
+
 ...

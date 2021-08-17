@@ -36,6 +36,11 @@
   changed_when: false
   ignore_errors: true
 
+- name: k8s install 
+  shell: |
+    which kubectl || (apt install -y kubectl=1.21.\* kubelet=1.21.\* && apt-mark hold kubectl kubelet)
+    which kubeadm || (apt install -y kubeadm=1.21.\* && apt-mark hold kubeadm)
+
 - name: Install worker packages
   apt:
     name:

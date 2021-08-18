@@ -15,20 +15,25 @@
 - name: Save iptables rules
   include_tasks: "{{ playbook_dir }}/lib/firewall-save.yml"
 
-- name: Add Kubernetes signing key
+- name: Add signing keys
   apt_key:
-    url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+    url: "{{ item }}"
     state: present
   retries: 3
   delay: 10
+  loop:
+    - "https://packages.cloud.google.com/apt/doc/apt-key.gpg"
+    - "https://baltocdn.com/helm/signing.asc"
 
-- name: Add Kubernetes repository
+- name: Add repositories
   apt_repository:
-    repo: "deb https://apt.kubernetes.io/ kubernetes-xenial main"
+    repo: "{{ item }}"
     state: present
   retries: 3
   delay: 10
-
+  loop:
+    - "deb https://apt.kubernetes.io/ kubernetes-xenial main"
+    - "deb https://baltocdn.com/helm/stable/debian/ all main"
 
 - name: Update apt cache
   apt:
@@ -41,9 +46,10 @@
     which kubectl || (apt install -y kubectl=1.21.\* kubelet=1.21.\* && apt-mark hold kubectl kubelet)
     which kubeadm || (apt install -y kubeadm=1.21.\* && apt-mark hold kubeadm)
 
-- name: Install worker packages
+- name: Install common packages
   apt:
     name:
+      - helm
       - kubelet
       - kubeadm
       - containerd.io

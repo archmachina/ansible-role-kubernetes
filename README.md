@@ -1,3 +1,3 @@
 # ansible-role-kubernetes
 
-[![Latest](https://github.com/noveris-inf/ansible-role-kubernetes/workflows/Latest/badge.svg)](https://github.com/noveris-inf/ansible-role-kubernetes/actions?query=workflow%3ALatest) [![Versioned](https://github.com/noveris-inf/ansible-role-kubernetes/workflows/Versioned/badge.svg)](https://github.com/noveris-inf/ansible-role-kubernetes/actions?query=workflow%3AVersioned)
+[![latest](https://github.com/archmachina/ansible-role-kubernetes/workflows/latest/badge.svg)](https://github.com/archmachina/ansible-role-kubernetes/actions?query=workflow%3Alatest)

@@ -102,7 +102,7 @@
 - name: apiserver container
   docker_container:
     name: apiserver-haproxy
-    image: haproxy:2.2.4
+    image: haproxy:2.5.5
     volumes:
       - "/etc/apiserver-haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg"
     state: "started"

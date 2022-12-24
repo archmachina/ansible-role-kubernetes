@@ -1,0 +1,9 @@
+---
+
+- name: Firewall Configuration for Kubernetes
+  ufw:
+    direction: in
+    rule: allow
+    proto: any
+    from_ip: "{{ item }}"
+  loop: "{{ kubernetes_mgmt_nets|default([]) }}"

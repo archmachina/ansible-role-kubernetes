@@ -1,125 +1,16 @@
 ---
 
-#- name: Set default variables
-#  set_fact:
+- name: Package install
+  include_tasks: packages.yml
 
-- name: Firewall Configuration for Kubernetes
-  iptables:
-    chain: INPUT
-    jump: ACCEPT
-    protocol: ip
-    source: "{{ item }}"
-  with_items: "{{ kubernetes_mgmt_nets }}"
-  when: kubernetes_mgmt_nets is defined
+- name: Firewall configuration
+  include_tasks: firewall.yml
 
-- name: Save iptables rules
-  include_tasks: "{{ playbook_dir }}/lib/firewall-save.yml"
+- name: apiserver configuration
+  include_tasks: apiserver.yml
 
-- name: Add signing keys
-  apt_key:
-    url: "{{ item }}"
-    state: present
-  retries: 3
-  delay: 10
-  loop:
-    - "https://packages.cloud.google.com/apt/doc/apt-key.gpg"
-    - "https://baltocdn.com/helm/signing.asc"
-
-- name: Add repositories
-  apt_repository:
-    repo: "{{ item }}"
-    state: present
-  retries: 3
-  delay: 10
-  loop:
-    - "deb https://apt.kubernetes.io/ kubernetes-xenial main"
-    - "deb https://baltocdn.com/helm/stable/debian/ all main"
-
-- name: Update apt cache
-  apt:
-    update_cache: true
-  changed_when: false
-  ignore_errors: true
-
-- name: k8s install 
-  shell: |
-    which kubectl || (apt install -y kubectl=1.21.\* kubelet=1.21.\* && apt-mark hold kubectl kubelet)
-    which kubeadm || (apt install -y kubeadm=1.21.\* && apt-mark hold kubeadm)
-
-- name: Install common packages
-  apt:
-    name:
-      - helm
-      - kubelet
-      - kubeadm
-      - containerd.io
-      - haproxy
-      - python3-docker
-      - python3-distutils
-    state: present
-
-- name: Hold Kubernetes worker packages
-  command: "apt-mark hold kubelet kubeadm"
-
-- name: Install manager packages
-  apt:
-    name:
-      - kubectl
-    state: present
-  when: "kubernetes_manager | default(false)"
-
-- name: Hold Kubernetes manager packages
-  command: "apt-mark hold kubectl"
-  when: "kubernetes_manager | default(false)"
-
-- name: Disable active swap
-  command: "swapoff -a"
-  when: ansible_swaptotal_mb > 0
-
-- name: Disable swap (fstab)
-  args:
-    warn: false
-  shell: >
-    sed -i '/^[[:space:]]*[^#].*[[:space:]]\+swap[[:space:]]\+/s/^\(.*\)/#\1/' /etc/fstab
-
-- name: kube directory
-  file:
-    state: directory
-    path: ~/.kube
-    owner: root
-    group: root
-    mode: 0700
-
-- name: Copy haproxy configuration
-  template:
-    dest: /etc/apiserver-haproxy.cfg
-    src: haproxy.cfg.j2
-    owner: root
-    group: root
-    mode: 0644
-  register: haproxy_config
-
-- name: apiserver container
-  docker_container:
-    name: apiserver-haproxy
-    image: haproxy:2.5.5
-    volumes:
-      - "/etc/apiserver-haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg"
-    state: "started"
-    restart_policy: "always"
-    network_mode: "host"
-    recreate: "{{ true if haproxy_config.changed else false }}"
-    restart: "{{ true if haproxy_config.changed else false }}"
-  retries: 3
-  delay: 10
-
-- name: Add hosts files entries
-  lineinfile:
-    path: /etc/hosts
-    regexp: "^127.0.0.1 {{ kubernetes_control_plane_host }}$"
-    line: "127.0.0.1 {{ kubernetes_control_plane_host }}"
-    state: present
-  when: kubernetes_add_hosts_entries
+- name: System Configuration
+  include_tasks: system.yml
 
 - name: Manager setup
   include_tasks: manager_setup.yml

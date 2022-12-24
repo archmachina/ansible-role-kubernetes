@@ -1,0 +1,49 @@
+---
+
+- name: Disable active swap
+  command: "swapoff -a"
+  when: ansible_swaptotal_mb > 0
+
+- name: Disable swap (fstab)
+  args:
+    warn: false
+  shell: >
+    sed -i '/^[[:space:]]*[^#].*[[:space:]]\+swap[[:space:]]\+/s/^\(.*\)/#\1/' /etc/fstab
+
+- name: kube directory
+  file:
+    state: directory
+    path: ~/.kube
+    owner: root
+    group: root
+    mode: 0700
+
+- name: Sysctl settings
+  sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    reload: true
+  loop:
+    - name: net.bridge.bridge-nf-call-iptables
+      value: 1
+    - name: net.bridge.bridge-nf-call-ip6tables
+      value: 1
+    - name: net.ipv4.ip_forward
+      value: 1
+
+- name: k8s modules config
+  copy:
+    content: |
+      {% for mod in kubernetes_modules %}
+      {{ mod }}
+      {% endfor %}
+    dest: /etc/modules-load.d/k8s.conf
+    owner: root
+    group: root
+    mode: 0644
+
+- name: k8s modules load
+  modprobe:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ kubernetes_modules }}"

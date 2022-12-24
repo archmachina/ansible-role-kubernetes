@@ -6,7 +6,8 @@
 
 - name: Distribute manager join command
   when:
-    - kubernetes_manager_join_run is defined and kubernetes_manager_join_run.stdout|default('') != ''
+    - kubernetes_manager_join_run is defined
+    - kubernetes_manager_join_run.stdout|default('') != ''
   set_fact:
     kubernetes_manager_join_command: "{{ kubernetes_manager_join_run.stdout }}"
   delegate_to: "{{ item }}"
@@ -23,9 +24,9 @@
   when:
     - "inventory_hostname == kubernetes_primary_node"
     - "kubernetes_remove_master_taint|default(false)"
+  retries: 3
+  delay: 10
   failed_when: false
   environment:
     http_proxy: ""
     https_proxy: ""
-
-...

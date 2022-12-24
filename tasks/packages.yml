@@ -1,0 +1,57 @@
+---
+
+- name: Add signing keys
+  apt_key:
+    url: "{{ item }}"
+    state: present
+  retries: 3
+  delay: 10
+  loop:
+    - "https://packages.cloud.google.com/apt/doc/apt-key.gpg"
+    - "https://baltocdn.com/helm/signing.asc"
+
+- name: Add repositories
+  apt_repository:
+    repo: "{{ item }}"
+    state: present
+  retries: 3
+  delay: 10
+  loop:
+    - "deb https://apt.kubernetes.io/ kubernetes-xenial main"
+    - "deb https://baltocdn.com/helm/stable/debian/ all main"
+
+- name: Update apt cache
+  apt:
+    update_cache: true
+  changed_when: false
+  ignore_errors: true
+
+- name: k8s install
+  shell: |
+    which kubectl || (apt install -y kubectl=1.26.\* kubelet=1.26.\* && apt-mark hold kubectl kubelet)
+    which kubeadm || (apt install -y kubeadm=1.26.\* && apt-mark hold kubeadm)
+
+- name: Install packages
+  apt:
+    name:
+      - helm
+      - kubelet
+      - kubeadm
+      - kubectl
+      - python3-docker
+      - python3-distutils
+    state: present
+
+- name: Hold Kubernetes worker packages
+  command: "apt-mark hold kubelet kubeadm"
+
+# - name: Install manager packages
+#   apt:
+#     name:
+#       - kubectl
+#     state: present
+#   when: "kubernetes_manager | default(false)"
+
+- name: Hold Kubernetes manager packages
+  command: "apt-mark hold kubectl"
+  when: "kubernetes_manager | default(false)"

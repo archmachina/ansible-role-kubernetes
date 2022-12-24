@@ -10,7 +10,8 @@
 
 - name: Distribute worker join command
   when:
-    - kubernetes_worker_join_run is defined and kubernetes_worker_join_run.stdout|default('') != ''
+    - kubernetes_worker_join_run is defined
+    - kubernetes_worker_join_run.stdout|default('') != ''
   set_fact:
     kubernetes_worker_join_command: "{{ kubernetes_worker_join_run.stdout }}"
   delegate_to: "{{ item }}"
@@ -32,5 +33,3 @@
   environment:
     http_proxy: ""
     https_proxy: ""
-
-...

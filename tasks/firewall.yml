@@ -7,3 +7,13 @@
     proto: any
     from_ip: "{{ item }}"
   loop: "{{ kubernetes_mgmt_nets|default([]) }}"
+
+- name: Allow all forwarding
+  ufw:
+    route: true
+    rule: allow
+
+- name: Allow all outbound
+  ufw:
+    direction: out
+    rule: allow

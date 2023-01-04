@@ -20,10 +20,13 @@
 
 # Remove master taints
 - name: Remove master taints
-  command: "kubectl taint nodes --all=true node-role.kubernetes.io/master-"
+  command: "kubectl taint nodes --all=true {{ item }}"
   when:
     - "inventory_hostname == kubernetes_primary_node"
     - "kubernetes_remove_master_taint|default(false)"
+  loop:
+    - "node-role.kubernetes.io/master-"
+    - "node-role.kubernetes.io/control-plane-"
   retries: 3
   delay: 10
   failed_when: false

@@ -19,4 +19,5 @@
 - name: Worker setup
   include_tasks: worker_setup.yml
 
-...
+- name: Post install tasks
+  include_tasks: post_install.yml

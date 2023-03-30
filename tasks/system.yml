@@ -5,8 +5,6 @@
   when: ansible_swaptotal_mb > 0
 
 - name: Disable swap (fstab)
-  args:
-    warn: false
   shell: >
     sed -i '/^[[:space:]]*[^#].*[[:space:]]\+swap[[:space:]]\+/s/^\(.*\)/#\1/' /etc/fstab
 
